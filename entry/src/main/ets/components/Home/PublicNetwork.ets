@@ -1,0 +1,129 @@
+import { BreakpointState } from '../../common/breakpoint/breakpointsystem'
+import { mediaquery, PromptAction } from '@kit.ArkUI'
+import { CardTitle } from './CardTitleBuilder'
+import { UIConfig } from '../../entryability/AppState'
+import ClashViewModel from '../../entryability/ClashViewModel'
+import { IpInfo } from 'proxy_core'
+import { EventHub, EventKey } from '../../common/EventHub'
+import { customVibrator } from '../../common/utils/VibratorUtil'
+import { customAnimationUtil } from '../../common/utils/Animation'
+import { HomeCardFontSize,
+  HomeCardIPFontSize,
+  HomeCardPadding, HomeCardPartSmallFontSize } from '../../common/breakpoint/BreakPoint'
+import { updateGeoData } from 'proxy_core/src/main/cpp/types/libflclash/Index'
+import { Xb_ToastUtil } from 'xb_components'
+
+@Component
+struct PublicNetwork {
+
+  // 高度断点
+  @StorageLink ('currentHeightBreakpoint') heightBp: HeightBreakpoint = 0
+  // 宽度断点
+  @StorageLink ('currentWidthBreakpoint') widthBp: WidthBreakpoint = 1
+  // 折叠屏展开状态判定
+  @StorageLink ('isFoldStatus') isFoldStatus: boolean = false
+  @StorageLink('uiConfig') uiConfig: UIConfig = new UIConfig()
+  /* 主题色 */
+  @Consume('icon_emphasize') icon_emphasize: ResourceColor
+  // 是否检查过IP地址
+  @StorageLink('isCheckIP') isCheckIP: boolean = false
+  //编辑按钮点击后显示编辑状态判定
+  @Consume isShowHomeEdit: boolean
+  @Consume remoteIp: IpInfo | null
+
+  build() {
+    Column() {
+      CardTitle({ title: $r('app.string.PublicNetwork') })
+      Column() {
+        if (this.remoteIp?.ip) {
+          Text(this.remoteIp?.country ?? " " )
+            .fontSize(HomeCardPartSmallFontSize(this.widthBp, this.heightBp))
+            .fontColor($r('sys.color.font_secondary'))
+            .transition(customAnimationUtil.isOpacity(this.uiConfig))
+
+          Text( this.remoteIp?.ip  ?? $r('app.string.loading'))
+            .fontSize(HomeCardIPFontSize(this.widthBp, this.heightBp))
+            .textAlign(TextAlign.JUSTIFY)
+            .fontColor($r('sys.color.font_primary'))
+            .transition(customAnimationUtil.isOpacity(this.uiConfig))
+        } else {
+          Row(){
+            LoadingProgress()
+              .size({width:24,height:24})
+              .color(this.icon_emphasize)
+
+            Text($r('app.string.loading'))
+              .fontSize(HomeCardIPFontSize(this.widthBp, this.heightBp))
+              .textAlign(TextAlign.JUSTIFY)
+              .fontColor($r('sys.color.font_primary'))
+          }.transition(customAnimationUtil.isOpacity(this.uiConfig))
+        }
+      }
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Start)
+      .width('100%')
+      .flexGrow(1)
+
+      Row() {
+        Button($r('app.string.refresh_IP'))
+          .width(Xb_ToastUtil.px2vp(212))
+          .height(Xb_ToastUtil.px2vp(95))
+          .labelStyle({ overflow: TextOverflow.Clip,
+            maxLines: 1,
+            minFontSize: 6,
+            maxFontSize: 18,
+            font: {
+              size: HomeCardFontSize(this.widthBp, this.heightBp),
+            }
+          })
+          .fontColor(this.icon_emphasize)
+          .backgroundColor($r('app.color.home_card_background'))
+          .onClick(() => {
+            // 在home页编辑卡片状态时，无法操作，点击回调写在if判定里
+            if (this.isShowHomeEdit === false) {
+                this.remoteIp = null
+                EventHub.sendEvent(EventKey.checkIpInfo)
+              if (this.uiConfig.isVibrate) {
+                customVibrator.vibratorTriggerOfHapticClockTimer()
+              }
+            }
+          })
+      }.width('100%').justifyContent(FlexAlign.End)
+    }
+    .padding(HomeCardPadding(this.widthBp, this.heightBp))
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Start)
+    .id('PublicNetworkId')
+    .onVisibleAreaChange([0],(isExpanding: boolean, currentRatio: number) => {
+      console.debug('显示 PublicNetwork -', isExpanding, currentRatio)
+
+      // 当组件显示的时候 -> 执行一次 IP刷新
+      if (isExpanding) {
+        EventHub.sendEvent(EventKey.checkIpInfo)
+      }
+    })
+  }
+
+  aboutToAppear(): void {
+    // 检查IP事件(按需执行)
+    if (!this.isCheckIP) {
+      this.isCheckIP = true
+      EventHub.on(EventKey.checkIpInfo, async () => {
+        // 检查IP是否正在刷新中
+        const isCheckIpInfo = AppStorage.get<boolean>('isCheckIpInfo') ?? false
+        if (isCheckIpInfo) {
+          return
+        }
+
+        AppStorage.setOrCreate("isCheckIpInfo", true) // 标记IP正在刷新中
+        this.remoteIp = null
+        this.remoteIp = await ClashViewModel.checkIpInfo()
+        AppStorage.delete("isCheckIpInfo") // 刷新完成移除临时的全局变量，减少内存开销
+      })
+    }
+  }
+
+}
+
+export default PublicNetwork
