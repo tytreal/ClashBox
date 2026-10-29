@@ -4,6 +4,7 @@ import { ProxyItem } from "../common/datasources/ProxyData";
 import { resourcesBlankData, theResourcesData } from "../components/More/Resources";
 import ClashViewModel from "./ClashViewModel";
 import { bundleManager } from "@kit.AbilityKit";
+import { BusinessError } from "@kit.BasicServicesKit";
 import { EventHub, EventKey } from "../common/EventHub";
 import { CustomThemeName } from "xb_components/src/main/ets/utils/AppThemeManager";
 import { TabStyle, Xb_PreferenceUtil } from "xb_components";
@@ -253,11 +254,11 @@ export class AppState {
       bundleManager.getBundleInfoForSelf(bundleFlags).then((data) => {
         console.info('getBundleInfoForSelf successfully. Data: %{public}s', JSON.stringify(data));
         AppState.appProvisionType = data.appInfo.appProvisionType
-      }).catch((err: BusinessError) => {
+      }).catch((err: BusinessError<void>) => {
         console.error('getBundleInfoForSelf failed. Cause: %{public}s', err.message);
       });
     } catch (err) {
-      let message = (err as BusinessError).message;
+      let message = (err as BusinessError<void>).message;
       console.error('getBundleInfoForSelf failed: %{public}s', message);
     }
   }

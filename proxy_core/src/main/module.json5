@@ -2,9 +2,8 @@
   "module": {
     "name": "proxy_core",
     "type": "har",
-    "requestPermissions": [
-      {"name":"ohos.permission.GET_IP_MAC_INFO"}
-    ],
+    // GET_IP_MAC_INFO 需较新 SDK（约 API 22 / 6.0.2）才预置；当前工程兼容 SDK 无此权限会编不过。
+    // setNetIpMacInfo() 内已 try/catch，缺权限时仅跳过网卡信息注入。
     "deviceTypes": [
       "default",
       "tablet",

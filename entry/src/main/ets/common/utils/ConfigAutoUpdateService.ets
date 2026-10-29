@@ -6,6 +6,7 @@ import ClashViewModel from "../../entryability/ClashViewModel";
 import { Profile, ProfileType } from "proxy_core";
 import { convertMillisecondsToTimeGap, DEFAULT_TIMEOUT } from "../entity/Constants";
 import { Xb_GetResourceString, Xb_NotificationUtils } from "xb_components";
+import { TextNotificationContent, WantAgentParams } from "xb_components/src/main/ets/utils/AppNotificationService";
 import { notificationManager } from "@kit.NotificationKit";
 
 /**
@@ -222,17 +223,19 @@ export class ConfigAutoUpdateService {
 
             // 推送通知消息 - 成功
             if (this.context) {
+              const successContent: TextNotificationContent = {
+                title: "ClashBox",
+                text: `${Xb_GetResourceString($r('app.string.Configuration'),
+                  this.context)} ${profile.name} ${Xb_GetResourceString($r('app.string.update_success'),
+                  this.context)}`
+              }
+              const wantParams: WantAgentParams = { abilityName: 'EntryAbility' }
               await Xb_NotificationUtils.publishTextNotification(
                 (this.context as common.UIAbilityContext),
-                Number(profile.id),
-                {
-                  title: "ClashBox",
-                  text: `${Xb_GetResourceString($r('app.string.Configuration'),
-                    this.context)} ${profile.name} ${Xb_GetResourceString($r('app.string.update_success'),
-                    this.context)}`
-                },
+                successContent,
                 notificationManager.SlotType.SERVICE_INFORMATION,
-                { abilityName: 'EntryAbility' }
+                wantParams,
+                Number(profile.id)
               )
             }
 
@@ -248,15 +251,18 @@ export class ConfigAutoUpdateService {
 
           // 推送通知消息 - 失败
           if (this.context) {
+            const failErr = error as BusinessError<void>
+            const failContent: TextNotificationContent = {
+              title: "ClashBox",
+              text: failErr.message ?? String(error)
+            }
+            const wantParams: WantAgentParams = { abilityName: 'EntryAbility' }
             await Xb_NotificationUtils.publishTextNotification(
               (this.context as common.UIAbilityContext),
-              Number(profile.id),
-              {
-                title: "ClashBox",
-                text: error
-              },
+              failContent,
               notificationManager.SlotType.SERVICE_INFORMATION,
-              { abilityName: 'EntryAbility' }
+              wantParams,
+              Number(profile.id)
             )
           }
         }
@@ -264,7 +270,7 @@ export class ConfigAutoUpdateService {
 
       hilog.info(0xFF00, "ConfigAutoUpdateService", "配置更新检查完成");
     } catch (error) {
-      const err = error as BusinessError;
+      const err = error as BusinessError<void>;
       hilog.error(0xFF00, "ConfigAutoUpdateService",
         `配置更新检查失败: ${err.message}`);
       return Promise.reject(err.message);
@@ -309,7 +315,7 @@ export class ConfigAutoUpdateService {
         `后台长时任务启动成功, notificationId=${result.notificationId}`);
       return result.notificationId;
     } catch (err) {
-      const error = err as BusinessError;
+      const error = err as BusinessError<void>;
       hilog.error(0xFF00, "ConfigAutoUpdateService",
         `后台长时任务启动失败: Code=${error.code}, Msg=${error.message}`);
       return -1;

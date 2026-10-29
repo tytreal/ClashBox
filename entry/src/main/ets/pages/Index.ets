@@ -91,6 +91,7 @@ import { cardManager } from '../common/utils/CardManageUtil'
 import LiveViewUtil from '../common/utils/LiveViewUtil'
 import { UpdateLog } from '../components/Start/UpdateLog'
 import { Xb_AnimationStyle } from 'xb_components';
+import { TextNotificationContent, WantAgentParams } from 'xb_components/src/main/ets/utils/AppNotificationService'
 import { getJsonArrayType } from '../common/entity/utils';
 import { holdingHandleUtil } from '../common/utils/HoldingHandleUtil';
 import { sortByCustomOrder } from '../common/utils/SortUtil';
@@ -972,15 +973,19 @@ struct Index {
         let up = '0'
         let down = '0'
         try {
-          Xb_NotificationUtils.publishTextNotification(this.context, this.noticeJob,
-            {
-              title: `${this.appConfig.currentProxyName ?? 'ClashBox'}`,
-              text: `${up}/s ↑ ${down}/s ↓`,
-            },
+          const noticeContent: TextNotificationContent = {
+            title: `${this.appConfig.currentProxyName ?? 'ClashBox'}`,
+            text: `${up}/s ↑ ${down}/s ↓`,
+          }
+          // 服务提醒类型 -> LEVEL_HIGH; CONTENT_INFORMATION -> LEVEL_MIN
+          const wantParams: WantAgentParams = { abilityName: 'EntryAbility' }
+          Xb_NotificationUtils.publishTextNotification(
+            this.context,
+            noticeContent,
             this.uiConfig.EnabledStatusNotice ? notificationManager.SlotType.SERVICE_INFORMATION :
               notificationManager.SlotType.CONTENT_INFORMATION,
-            // 服务提醒类型 -> LEVEL_HIGH; CONTENT_INFORMATION -> LEVEL_MIN
-            { abilityName: 'EntryAbility' })
+            wantParams,
+            this.noticeJob)
         } catch (err) {
           hilog.info(0xFF00, 'NotificationUtils', `文本通知ID: ${this.noticeJob}发布错误: ${err} `);
         }
@@ -990,12 +995,13 @@ struct Index {
           down = this.appFlowingState.traffics.getLast()?.down?.toString() ?? "0"
           hilog.info(0xFF00, 'NotificationUtils', `文本通知ID: ${this.noticeJob}更新文本: ${up}/s ↑ ${down}/s ↓ `);
           try {
+            const updateContent: TextNotificationContent = {
+              title: `${this.appConfig.currentProxyName ?? 'ClashBox'}`,
+              text: `${up}/s ↑ ${down}/s ↓`,
+            }
             Xb_NotificationUtils.updateTextNotification(
               this.noticeJob,
-              {
-                title: `${this.appConfig.currentProxyName ?? 'ClashBox'}`,
-                text: `${up}/s ↑ ${down}/s ↓`,
-              },
+              updateContent,
               this.uiConfig.EnabledStatusNotice ? notificationManager.SlotType.SERVICE_INFORMATION :
                 notificationManager.SlotType.CONTENT_INFORMATION, // 服务提醒类型 -> LEVEL_HIGH; CONTENT_INFORMATION -> LEVEL_MIN
             )

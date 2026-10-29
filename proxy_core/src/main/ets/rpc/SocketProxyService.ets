@@ -11,8 +11,6 @@ import { UpdateConfigParams } from '../models/ClashConfig';
 import { checkIp, queryCurrentIpInfo, flushHttpConnections } from '../Request';
 import { Fd, ParseProxyGroup, VpnOptions } from './FlClashVpnService';
 import { Address, isIpv4, isIpv6, VpnConfig } from './CommonVpnService';
-import { connection } from '@kit.NetworkKit';
-
 interface DelayInfo{
   name: string
   value: number
@@ -75,15 +73,9 @@ export class SocketProxyService implements IClashManager {
     let result = await this.sendMessageRequest(ClashRpcType.downloadConfig, [url, agent, filePath])
     return result as string;
   }
-  async setNetIpMacInfo(){
-    try {
-      const table = await connection.getIpNeighTable()
-      const jsonParams = JSON.stringify(table);
-      let result = await this.sendMessageRequest(ClashRpcType.SetNetInterfaces, [jsonParams])
-      return result as string;
-    }catch (e) {
-      console.warn("setNetIpMacInfo 不支持注入网卡信息")
-    }
+  async setNetIpMacInfo(): Promise<string> {
+    // getIpNeighTable / GET_IP_MAC_INFO 需更高 SDK（约 API 22），当前编译 SDK 无此 API，直接跳过。
+    console.warn("setNetIpMacInfo 不支持注入网卡信息")
     return "";
   }
   async setSystemDns(dns: string){
